@@ -1,0 +1,31 @@
+name: lock-refresh (temporary)
+on:
+  push:
+    branches: [chore/ts7]
+    paths: [.github/workflows/lock-refresh.yml]
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm view typescript-eslint@latest version peerDependencies
+      - name: TypeScript 7 + latest typescript-eslint
+        run: |
+          node -e "
+            const fs=require('fs');const p=require('./package.json');
+            Object.assign(p.devDependencies,{typescript:'^7.0.0','typescript-eslint':'latest'});
+            fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
+          npm install
+      - name: Verify
+        run: npm run build && npm run lint
+      - name: Commit
+        run: |
+          git config user.name "amnindersingh12"
+          git config user.email "amnindersingh58611@gmail.com"
+          git add package.json package-lock.json
+          git commit -m "chore: TypeScript 7 + typescript-eslint" || echo "nothing to commit"
+          git push
